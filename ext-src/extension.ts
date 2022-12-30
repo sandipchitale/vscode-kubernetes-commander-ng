@@ -1,14 +1,35 @@
 import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as zlib from 'zlib';
 
 import * as vscode from 'vscode';
 import * as k8s from 'vscode-kubernetes-tools-api';
+
+const YAML = require('json-to-pretty-yaml');
 
 const K8S_RESOURCE_SCHEME = 'k8smsx';
 const K8S_RESOURCE_SCHEME_READONLY = 'k8smsxro';
 const KUBECTL_RESOURCE_AUTHORITY = 'loadkubernetescore';
 const KUBECTL_DESCRIBE_AUTHORITY = 'kubernetesdescribe';
+
+const MANIFEST = 'Manifest';
+const TEMPLATES = 'Templates';
+const VALUES = 'Values';
+const HOOKS = 'Hooks';
+const NOTES = 'Notes';
+const CHART = 'Chart';
+const ALL = 'all';
+
+const GET_TYPES = [
+    MANIFEST,
+    TEMPLATES,
+    VALUES,
+    HOOKS,
+    NOTES,
+    CHART,
+    ALL
+]
 
 class KubernetesCommanderViewProvider implements vscode.WebviewViewProvider {
 
@@ -227,9 +248,9 @@ class KubernetesCommanderViewProvider implements vscode.WebviewViewProvider {
               data.namespace2,
               data.release2,
               data.revision2);
-            break;
+          break;
         case 'settings':
-            this.settings();
+          this.settings();
           break;
         case 'showErrorMessage':
           this.showErrorMessage(data.message);
@@ -421,6 +442,7 @@ class KubernetesCommanderViewProvider implements vscode.WebviewViewProvider {
           }
         });
 
+        // tslint:disable-next-line: max-line-length
         const resourceTypesShowOnly = vscode.workspace.getConfiguration().get<string>('vscode-kubernetes-commander-ng.resourceTypesShowOnly');
         if (!resourceTypesShowOnly) {
           orderedApiResources.push(...apiResources);
@@ -433,7 +455,6 @@ class KubernetesCommanderViewProvider implements vscode.WebviewViewProvider {
             const col = orderedApiResourceLine.substring(columnRange[0], columnRange[1]).trim();
             apiResourcesCols.push(col);
           });
-
 
           return {
             name: apiResourcesCols[0],
@@ -473,7 +494,6 @@ class KubernetesCommanderViewProvider implements vscode.WebviewViewProvider {
   settings() {
     vscode.commands.executeCommand('workbench.action.openSettings', `@ext:sandipchitale.vscode-kubernetes-commander`);
   }
-
 
   editKubeconfig(kubeconfig: string) {
     if (kubeconfig.startsWith('~')) {
@@ -891,48 +911,104 @@ class KubernetesCommanderViewProvider implements vscode.WebviewViewProvider {
         return;
     }
 
-    const compareWhat = await vscode.window.showQuickPick([
-      'manifest',
-      'values',
-      'hooks',
-      'notes',
-      'all'
-    ], {
+    const compareWhat = await vscode.window.showQuickPick(GET_TYPES, {
       placeHolder: 'Compare what?',
-    })
+    });
 
     if (!compareWhat) {
       return;
     }
 
-    const helmGetAllResult1 = await helm.api.invokeCommand(`get ${compareWhat} ${release1} --namespace ${namespace1} --revision ${revision1}`);
-    if (helmGetAllResult1) {
-      if (helmGetAllResult1.code !== 0) {
-        vscode.window.showErrorMessage(helmGetAllResult1.stderr);
-        return;
-      }
-    } else {
-      return;
+    const helmGetAllResult1 = await this.helmGetAllReleaseRevisionFromNamespace(namespace1, release1, '' + revision1);
+    const helmGetAllResult2 = await this.helmGetAllReleaseRevisionFromNamespace(namespace2, release2, '' + revision2);
+    if (helmGetAllResult1 && helmGetAllResult2) {
+      const lang = (compareWhat === TEMPLATES ? 'helm' : 'yaml');
+      const document1 = await vscode.workspace.openTextDocument({
+        language: lang,
+        content: `# helm get ${compareWhat} ${release1} --namespace ${namespace1} --revision ${revision1}\n\n${helmGetAllResult1[compareWhat]}`
+      });
+      const document2 = await vscode.workspace.openTextDocument({
+        language: lang,
+        content: `# helm get ${compareWhat} ${release2} --namespace ${namespace2} --revision ${revision2}\n\n${helmGetAllResult2[compareWhat]}`
+      });
+      vscode.commands.executeCommand('vscode.diff', document1.uri, document2.uri);
     }
-    const helmGetAllResult2 = await helm.api.invokeCommand(`get ${compareWhat} ${release2} --namespace ${namespace2} --revision ${revision2}`);
-    if (helmGetAllResult2) {
-      if (helmGetAllResult2.code !== 0) {
-        vscode.window.showErrorMessage(helmGetAllResult2.stderr);
-        return;
-      }
-    } else {
-      return;
-    }
+  }
 
-    const document1 = await vscode.workspace.openTextDocument({
-      language: 'yaml',
-      content: `# helm get ${compareWhat} ${release1} --namespace ${namespace1} --revision ${revision1}\n\n${helmGetAllResult1.stdout}`
+  // tslint:disable-next-line: max-line-length
+  async helmGetAllReleaseRevisionFromNamespace(
+    namespace: string,
+    releaseName: string,
+    releaseRevision: string): Promise<any> {
+    const explorer = await k8s.extension.clusterExplorer.v1;
+
+    return new Promise(async (resolve, reject) => {
+      if (!explorer.available) {
+        vscode.window.showErrorMessage(`ClusterExplorer not available.`);
+        reject();
+        return;
+      }
+
+      const kubectl = await k8s.extension.kubectl.v1;
+      if (!kubectl.available) {
+        vscode.window.showErrorMessage(`kubectl not available.`);
+        reject();
+        return;
+      }
+
+      const secretName = `sh.helm.release.v1.${releaseName}.v${releaseRevision}`;
+      const shellResult = await kubectl.api.invokeCommand(`get secret ${secretName} -o go-template="{{.data.release | base64decode }}" -n ${namespace}`);
+      if (shellResult && shellResult.code === 0) {
+        zlib.gunzip(Buffer.from(shellResult.stdout, 'base64'), async (e, inflated) => {
+          const helmGetAllJSON: any = JSON.parse(inflated.toString('utf8'));
+          let notes = '';
+          let values = '';
+          let templates = '';
+          let manifests = '';
+          let hooks = '';
+          let chart = '';
+
+          notes = helmGetAllJSON.info.notes.split('\\n').join('\n');
+
+          helmGetAllJSON.chart.templates.forEach((template: any) => {
+              const templateString = Buffer.from(template.data, 'base64').toString('utf-8');
+              templates += `\n---\n# Template: ${template.name}\n${templateString}`;
+              template.data = templateString;
+          });
+          templates = templates.split('\\n').join('\n');
+
+          if (helmGetAllJSON.config) {
+              values += `# value overrides\n---\n${YAML.stringify(helmGetAllJSON.config)}`;
+          }
+
+          values += `# values\n---\n${YAML.stringify(helmGetAllJSON.chart.values)}`;
+
+          manifests = helmGetAllJSON.manifest.split('\\n').join('\n');
+
+          helmGetAllJSON.hooks.forEach((hook: any) => {
+              hooks += `\n# Source: ${hook.path}\n${hook.manifest}`;
+          });
+          hooks = hooks.split('\\n').join('\n');
+
+          helmGetAllJSON.chart.files.forEach((file: any) => {
+              file.data = Buffer.from(file.data, 'base64').toString('utf-8');
+          });
+
+          chart = YAML.stringify(helmGetAllJSON.chart.metadata);
+
+          const releaseInfo: any = {};
+
+          releaseInfo[MANIFEST] =  manifests;
+          releaseInfo[TEMPLATES] = templates;
+          releaseInfo[VALUES] = values;
+          releaseInfo[CHART] = chart;
+          releaseInfo[HOOKS] =  hooks;
+          releaseInfo[ALL] = `${JSON.stringify(helmGetAllJSON, null, '  ')}`;
+          releaseInfo[NOTES] = notes;
+          resolve(releaseInfo);
+        });
+      }
     });
-    const document2 = await vscode.workspace.openTextDocument({
-      language: 'yaml',
-      content: `# helm get ${compareWhat} ${release2} --namespace ${namespace2} --revision ${revision2}\n\n${helmGetAllResult2.stdout}`
-    });
-    vscode.commands.executeCommand("vscode.diff", document1.uri, document2.uri);
   }
 
   showErrorMessage(message: string) {

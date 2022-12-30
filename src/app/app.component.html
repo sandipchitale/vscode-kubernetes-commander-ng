@@ -219,7 +219,6 @@
                         <ng-container *ngIf="resourceType.name === 'helmreleases'">
                           <div class="p-ml-auto p-mr-2 p-d-flex p-ai-center">
                             <input pInputText class="p-inputtext-sm" type="number" min="1" max="{{ resource.revision }}" [(ngModel)]="resource.selectedRevision0"/>
-                            <!-- [disabled]="resource.selectedRevision0 === resource.selectedRevision" -->
                             <button pButton
                               icon="pi pi-arrows-h"
                               class="p-button-sm p-button-link p-ml-3"
@@ -230,7 +229,8 @@
                             <p-checkbox
                               styleClass="p-ml-3"
                               [(ngModel)]="resource.selectedForCompare"
-                              [binary]="true" title="Select to compare"></p-checkbox>
+                              [binary]="true" title="Select to compare">
+                            </p-checkbox>
                             <button pButton
                               icon="pi pi-arrows-v"
                               class="p-button-sm p-button-link p-ml-3"

@@ -1,0 +1,259 @@
+{
+  "name": "vscode-kubernetes-commander-ng",
+  "displayName": "Kubernetes Commander (DEPRECATED)",
+  "icon": "images/icon.png",
+  "description": "Kubernetes Commander view based on VSCode Webview (DEPRECATED)",
+  "version": "1.0.64",
+  "license": "MIT",
+  "preview": true,
+  "main": "./dist/ext-src/extension.js",
+  "publisher": "sandipchitale",
+  "galleryBanner": {
+    "color": "#341114",
+    "theme": "dark"
+  },
+  "author": {
+    "name": "Sandip Chitale"
+  },
+  "maintainers": [
+    "Sandip Chitale <sandipchitale@gmail.com>"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sandipchitale/vscode-kubernetes-commander-ng"
+  },
+  "contributes": {
+    "configuration": {
+      "properties": {
+        "vscode-kubernetes-commander-ng.resourceTypes": {
+          "title": "Resource Types",
+          "type": "array",
+          "default": [
+            "helmreleases",
+            "deployments",
+            "statefulsets",
+            "jobs",
+            "daemonsets",
+            "cronjobs",
+            "pods",
+            "persistentvolumeclaims",
+            "services",
+            "ingresses",
+            "configmaps",
+            "secrets",
+            "nodes",
+            "namespaces",
+            "podtemplates",
+            "replicasets",
+            "replicationcontrollers",
+            "storageclasses",
+            "persistentvolumes",
+            "volumeattachments",
+            "endpoints",
+            "endpointslices",
+            "ingressclasses",
+            "events",
+            "serviceaccounts",
+            "certificatesigningrequests",
+            "clusterroles",
+            "clusterrolebindings",
+            "roles",
+            "rolebindings",
+            "limitranges",
+            "resourcequotas",
+            "horizontalpodautoscalers",
+            "customresourcedefinitions"
+          ],
+          "items": {
+            "type": "string",
+            "enum": [
+              "apiservices",
+              "bindings",
+              "certificatesigningrequests",
+              "clusterrolebindings",
+              "clusterroles",
+              "componentstatuses",
+              "configmaps",
+              "controllerrevisions",
+              "cronjobs",
+              "csidrivers",
+              "csinodes",
+              "customresourcedefinitions",
+              "daemonsets",
+              "deployments",
+              "endpoints",
+              "endpointslices",
+              "events",
+              "events",
+              "horizontalpodautoscalers",
+              "ingressclasses",
+              "ingresses",
+              "ingresses",
+              "jobs",
+              "leases",
+              "limitranges",
+              "localsubjectaccessreviews",
+              "mutatingwebhookconfigurations",
+              "namespaces",
+              "networkpolicies",
+              "nodes",
+              "persistentvolumeclaims",
+              "persistentvolumes",
+              "poddisruptionbudgets",
+              "pods",
+              "podsecuritypolicies",
+              "podtemplates",
+              "priorityclasses",
+              "replicasets",
+              "replicationcontrollers",
+              "resourcequotas",
+              "rolebindings",
+              "roles",
+              "runtimeclasses",
+              "secrets",
+              "selfsubjectaccessreviews",
+              "selfsubjectrulesreviews",
+              "serviceaccounts",
+              "services",
+              "statefulsets",
+              "storageclasses",
+              "subjectaccessreviews",
+              "tokenreviews",
+              "validatingwebhookconfigurations",
+              "volumeattachments"
+            ]
+          },
+          "description": "Resource Types to show in order"
+        },
+        "vscode-kubernetes-commander-ng.resourceTypesShowOnly": {
+          "title": "Show only Resource Types",
+          "type": "boolean",
+          "default": false,
+          "description": "Show only specified Resource Types"
+        },
+        "vscode-kubernetes-commander-ng.get-options": {
+          "title": "Additonal options for get",
+          "type": "string",
+          "default": "-o wide",
+          "description": "Additional options for get command for hover"
+        },
+        "vscode-kubernetes-commander-ng.shell": {
+          "title": "Shell",
+          "type": "string",
+          "default": "/bin/sh",
+          "enum": [
+            "/bin/sh",
+            "/bin/bash"
+          ],
+          "description": "Shell to use (only /bin/sh or /bin/bash is allowed)"
+        },
+        "vscode-kubernetes-commander-ng.tail-lines": {
+          "title": "Tail lines",
+          "type": "number",
+          "default": "10",
+          "description": "Number of context lines to tail."
+        },
+        "vscode-kubernetes-commander-ng.nsenter-image": {
+          "type": "string",
+          "description": "Specify nsenter images to use e.g. jpetazzo/nsenter:latest. WARNING: Use at your own risk."
+        }
+      }
+    },
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "kubernetes-commander-ng-panel",
+          "title": "Kubernetes Commander",
+          "icon": "$(split-horizontal)"
+        }
+      ]
+    },
+    "views": {
+      "kubernetes-commander-ng-panel": [
+        {
+          "type": "webview",
+          "id": "vscode-kubernetes-commander-ng.view",
+          "name": "Kubernetes Commander View"
+        }
+      ]
+    }
+  },
+  "engines": {
+    "vscode": "^1.63.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:vscode-kubernetes-commander-ng.view"
+  ],
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build --configuration production --output-hashing none && tsc -p tsconfig.extension.json && shx cp -r ext-src/node_modules dist/ext-src",
+    "test": "ng test",
+    "lint": "ng lint",
+    "e2e": "ng e2e",
+    "package": "vsce package --yarn",
+    "vscode:prepublish": "npm run build && tsc -p tsconfig.extension.json"
+  },
+  "private": false,
+  "dependencies": {
+    "@angular/animations": "15.1.2",
+    "@angular/cdk": "^15.1.2",
+    "@angular/common": "15.1.2",
+    "@angular/compiler": "15.1.2",
+    "@angular/core": "15.1.2",
+    "@angular/forms": "15.1.2",
+    "@angular/platform-browser": "15.1.2",
+    "@angular/platform-browser-dynamic": "15.1.2",
+    "@angular/router": "15.1.2",
+    "@ngx-translate/core": "14.0.0",
+    "@ngx-translate/http-loader": "7.0.0",
+    "json-to-pretty-yaml": "^1.2.2",
+    "primeflex": "^3.3.0",
+    "primeicons": "^6.0.1",
+    "primeng": "^15.2.0",
+    "quill": "1.3.7",
+    "rxjs": "7.4.0",
+    "tslib": "^2.1.0",
+    "vscode-kubernetes-tools-api": "^1.3.0",
+    "vscode-test": "^1.5.2",
+    "zone.js": "~0.11.4"
+  },
+  "devDependencies": {
+    "@angular-builders/custom-webpack": "13.0.0",
+    "@angular-devkit/build-angular": "15.1.3",
+    "@angular-eslint/builder": "15.2.0",
+    "@angular-eslint/eslint-plugin": "15.2.0",
+    "@angular-eslint/eslint-plugin-template": "15.2.0",
+    "@angular-eslint/schematics": "15.2.0",
+    "@angular-eslint/template-parser": "15.2.0",
+    "@angular/cli": "15.1.3",
+    "@angular/compiler-cli": "15.1.2",
+    "@angular/language-service": "15.1.2",
+    "@types/glob": "^7.1.3",
+    "@types/jasmine": "~3.6.0",
+    "@types/jasminewd2": "^2.0.8",
+    "@types/node": "14.x",
+    "@types/vscode": "^1.63.0",
+    "@typescript-eslint/eslint-plugin": "^5.43.0",
+    "@typescript-eslint/parser": "^5.43.0",
+    "codelyzer": "^6.0.0",
+    "eslint": "^8.28.0",
+    "glob": "^7.1.7",
+    "jasmine-core": "~3.6.0",
+    "jasmine-spec-reporter": "~5.0.0",
+    "karma": "~6.4.1",
+    "karma-chrome-launcher": "~3.1.0",
+    "karma-coverage-istanbul-reporter": "~3.0.2",
+    "karma-jasmine": "~4.0.0",
+    "karma-jasmine-html-reporter": "^1.5.0",
+    "protractor": "~7.0.0",
+    "shx": "^0.3.4",
+    "ts-node": "~7.0.0",
+    "tslint": "~6.1.0",
+    "typescript": "^4.8.4",
+    "vsce": "^2.5.3"
+  }
+}
